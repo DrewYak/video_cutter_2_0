@@ -23,18 +23,19 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Video Cutter 2.0")
         self.resize(900, 600)
 
-        # --- config ---
+        # ===== CONFIG =====
         self.config_manager = ConfigManager()
+        self.config = self.config_manager._config
 
-        # --- controller ---
-        self.batch_controller = BatchController()
+        # ===== CONTROLLER =====
+        self.batch_controller = BatchController(self.config)
 
-        # --- central widget ---
+        # ===== CENTRAL WIDGET =====
         central = QWidget()
         self.setCentralWidget(central)
         main_layout = QVBoxLayout(central)
 
-        # ===== File controls =====
+        # ===== FILE CONTROLS =====
         file_controls = QHBoxLayout()
 
         self.btn_add_files = QPushButton("Добавить файлы")
@@ -46,21 +47,21 @@ class MainWindow(QMainWindow):
 
         main_layout.addLayout(file_controls)
 
-        # ===== Checkbox: show full paths =====
+        # ===== CHECKBOX: FULL PATHS =====
         self.checkbox_full_paths = QCheckBox("Показывать полный путь к файлам")
         self.checkbox_full_paths.setChecked(False)
         main_layout.addWidget(self.checkbox_full_paths)
 
-        # ===== File table =====
+        # ===== FILE TABLE =====
         self.file_table = FileTable(show_full_path=False)
         main_layout.addWidget(self.file_table)
 
-        # ===== Batch status =====
+        # ===== BATCH STATUS =====
         self.batch_status_label = QLabel("Ожидание запуска")
         self.batch_status_label.setAlignment(Qt.AlignLeft)
         main_layout.addWidget(self.batch_status_label)
 
-        # ===== Progress bars =====
+        # ===== PROGRESS BARS =====
         self.audio_progress = QProgressBar()
         self.audio_progress.setFormat("Аудио: %p%")
 
@@ -74,13 +75,10 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.video_progress)
         main_layout.addWidget(self.cut_progress)
 
-        # ===== Connections =====
+        # ===== SIGNALS =====
         self.btn_add_files.clicked.connect(self.on_add_files)
         self.btn_start.clicked.connect(self.on_start)
-
-        self.checkbox_full_paths.stateChanged.connect(
-            self.on_toggle_full_paths
-        )
+        self.checkbox_full_paths.stateChanged.connect(self.on_toggle_full_paths)
 
     # ------------------------------------------------------------------
 
@@ -107,21 +105,20 @@ class MainWindow(QMainWindow):
         if not files:
             return
 
-        # сброс прогресса
+        # reset progress
         self.audio_progress.setValue(0)
         self.video_progress.setValue(0)
         self.cut_progress.setValue(0)
-
         self.batch_status_label.setText("Подготовка…")
 
-        # запуск batch controller
+        # start processing
         self.batch_controller.start(files)
 
         worker = self.batch_controller.worker
         if worker is None:
             return
 
-        # === connect worker signals ===
+        # connect worker signals
         worker.batch_status_changed.connect(self.on_batch_status_changed)
         worker.audio_progress_changed.connect(self.audio_progress.setValue)
         worker.video_progress_changed.connect(self.video_progress.setValue)

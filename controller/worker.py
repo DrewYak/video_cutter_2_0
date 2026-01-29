@@ -1,4 +1,7 @@
-from PySide6.QtCore import QObject, Signal, QThread
+from PySide6.QtCore import QObject, Signal
+
+from analysis.audio_silence import find_silence_intervals
+
 
 class Worker(QObject):
     batch_status_changed = Signal(int, int)
@@ -7,23 +10,36 @@ class Worker(QObject):
     cut_progress_changed = Signal(int)
     finished = Signal()
 
-    def __init__(self, files: list[str]):
+    def __init__(self, files: list[str], config: dict):
         super().__init__()
         self.files = files
+        self.config = config
 
     def run(self):
         total = len(self.files)
 
-        for idx, file in enumerate(self.files, start=1):
-            # отправляем статус
-            self.batch_status_changed.emit(idx, total)
+        audio_cfg = self.config["audio"]
 
-            # здесь будет реальный анализ
-            # пока просто имитируем прогресс
-            for p in range(0, 101, 20):
-                self.audio_progress_changed.emit(p)
-                self.video_progress_changed.emit(p)
-                self.cut_progress_changed.emit(p)
+        for index, file_path in enumerate(self.files, start=1):
+            self.batch_status_changed.emit(index, total)
+            self.audio_progress_changed.emit(0)
 
-        # всё закончили
+            print(f"[AUDIO] Анализ файла: {file_path}")
+
+            intervals = find_silence_intervals(
+                audio_path=file_path,
+                chunk_duration_ms=audio_cfg["chunk_duration_ms"],
+                silence_threshold_db=audio_cfg["silence_threshold_db"],
+                min_silence_duration_ms=audio_cfg["min_silence_duration_ms"],
+                progress_callback=self.audio_progress_changed.emit,
+            )
+
+            print(
+                f"[AUDIO] Найдено интервалов тишины: {len(intervals)}"
+            )
+
+            # пока видео и нарезка — заглушки
+            self.video_progress_changed.emit(100)
+            self.cut_progress_changed.emit(100)
+
         self.finished.emit()

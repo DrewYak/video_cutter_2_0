@@ -3,9 +3,10 @@ from controller.worker import Worker
 
 
 class BatchController:
-    def __init__(self):
-        self.thread: QThread | None = None
-        self.worker: Worker | None = None
+    def __init__(self, config: dict):
+        self.config = config
+        self.thread = None
+        self.worker = None
 
     def start(self, files: list[str]):
         if not files:
@@ -15,7 +16,7 @@ class BatchController:
         self.thread = QThread()
 
         # создаём worker
-        self.worker = Worker(files)
+        self.worker = Worker(files, config=self.config)
 
         # переносим worker в поток
         self.worker.moveToThread(self.thread)
