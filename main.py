@@ -24,8 +24,8 @@ import time
 
 
 def main():
-    input_video = "06.01_crf20_veryslow.mp4"
-    output_video = "final_output_2.mp4"
+    input_video = "07.03.mkv"
+    output_video = "f07.03_output.mp4"
 
     # ---------- CONFIG ----------
     with open("config/config.json", "r", encoding="utf-8") as f:
