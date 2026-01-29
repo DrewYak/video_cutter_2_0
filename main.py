@@ -23,9 +23,11 @@ import json
 import time
 
 
-def main():
-    input_video = "07.03.mkv"
-    output_video = "f07.03_output.mp4"
+def run_pipeline(input_video: str, output_video: str):
+    """
+    Основной сценарий обработки видео.
+    Единственный источник истины для пайплайна.
+    """
 
     # ---------- CONFIG ----------
     with open("config/config.json", "r", encoding="utf-8") as f:
@@ -78,10 +80,8 @@ def main():
         if not ret:
             break
 
-        # маска вебкамеры
         frame = mask_webcam(frame, video_cfg["webcam_area"])
 
-        # downscale + preprocess
         processed = preprocess_frame(
             frame,
             scale=analysis_cfg["analysis_scale"]
@@ -102,7 +102,6 @@ def main():
         prev_processed = processed
         frame_index += 1
 
-        # прогресс раз в ~5 секунд
         now = time.time()
         if now - last_progress_time >= 5:
             percent = frame_index / frame_count * 100
@@ -139,6 +138,13 @@ def main():
 
     print("\nГОТОВО.")
     print("Итоговое видео:", output_video)
+
+
+def main():
+    input_video = "07.03.mkv"
+    output_video = "07.03_output.mp4"
+
+    run_pipeline(input_video, output_video)
 
 
 if __name__ == "__main__":
