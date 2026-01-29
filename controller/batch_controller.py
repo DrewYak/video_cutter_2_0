@@ -1,40 +1,32 @@
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QThread
+from controller.worker import Worker
 
 
-class BatchController(QObject):
-    batch_status_changed = Signal(int, int)   # current, total
-    audio_progress_changed = Signal(int)
-    video_progress_changed = Signal(int)
-    cut_progress_changed = Signal(int)
-    finished = Signal()
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self._files = []
-        self._current_index = 0
+class BatchController:
+    def __init__(self):
+        self.thread: QThread | None = None
+        self.worker: Worker | None = None
 
     def start(self, files: list[str]):
         if not files:
             return
 
-        self._files = files
-        self._current_index = 0
-        self._process_next_file()
+        # создаём поток
+        self.thread = QThread()
 
-    def _process_next_file(self):
-        total = len(self._files)
-        current = self._current_index + 1
+        # создаём worker
+        self.worker = Worker(files)
 
-        self.batch_status_changed.emit(current, total)
+        # переносим worker в поток
+        self.worker.moveToThread(self.thread)
 
-        # ⬇️ ВРЕМЕННАЯ симуляция этапов
-        self.audio_progress_changed.emit(100)
-        self.video_progress_changed.emit(100)
-        self.cut_progress_changed.emit(100)
+        # запуск worker при старте потока
+        self.thread.started.connect(self.worker.run)
 
-        self._current_index += 1
+        # корректное завершение
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
 
-        if self._current_index < total:
-            self._process_next_file()
-        else:
-            self.finished.emit()
+        # старт
+        self.thread.start()

@@ -3,15 +3,15 @@ from PySide6.QtWidgets import QTableWidget, QTableWidgetItem
 from PySide6.QtCore import Qt
 
 
-class FileTableWidget(QTableWidget):
+class FileTable(QTableWidget):
     COLUMN_NAME = 0
     COLUMN_STATUS = 1
     COLUMN_CUT_TIME = 2
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, show_full_path: bool = False):
         super().__init__(parent)
 
-        self._show_full_paths = False
+        self._show_full_paths = show_full_path
 
         self.setColumnCount(3)
         self.setHorizontalHeaderLabels([
@@ -23,6 +23,22 @@ class FileTableWidget(QTableWidget):
         self.setSelectionBehavior(QTableWidget.SelectRows)
         self.setSelectionMode(QTableWidget.SingleSelection)
         self.setEditTriggers(QTableWidget.NoEditTriggers)
+
+    # ---------- API, которое ожидает MainWindow ----------
+
+    def add_files(self, file_paths: list[str]):
+        for path in file_paths:
+            self.add_file(path)
+
+    def get_files(self) -> list[str]:
+        files = []
+        for row in range(self.rowCount()):
+            item = self.item(row, self.COLUMN_NAME)
+            if item:
+                files.append(item.data(Qt.UserRole))
+        return files
+
+    # ---------- Внутренняя логика ----------
 
     def add_file(self, file_path: str):
         row = self.rowCount()
@@ -45,14 +61,13 @@ class FileTableWidget(QTableWidget):
         if row >= 0:
             self.removeRow(row)
 
-    def set_show_full_paths(self, show: bool):
+    def set_show_full_path(self, show: bool):
         self._show_full_paths = show
 
         for row in range(self.rowCount()):
             item = self.item(row, self.COLUMN_NAME)
             full_path = item.data(Qt.UserRole)
 
-            if show:
-                item.setText(full_path)
-            else:
-                item.setText(os.path.basename(full_path))
+            item.setText(
+                full_path if show else os.path.basename(full_path)
+            )

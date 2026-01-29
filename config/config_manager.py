@@ -1,47 +1,48 @@
-# config/config_manager.py
-
 import json
-import copy
 from pathlib import Path
-from config.default_config import DEFAULT_CONFIG
-
-CONFIG_PATH = Path("config/config.json")
 
 
-def load_config() -> dict:
-    if not CONFIG_PATH.exists():
-        save_config(DEFAULT_CONFIG)
-        return copy.deepcopy(DEFAULT_CONFIG)
+class ConfigManager:
+    def __init__(self):
+        self.config_dir = Path(__file__).parent
+        self.default_config_path = self.config_dir / "default_config.json"
+        self.user_config_path = self.config_dir / "config.json"
 
-    try:
-        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-            user_config = json.load(f)
-    except Exception:
-        save_config(DEFAULT_CONFIG)
-        return copy.deepcopy(DEFAULT_CONFIG)
+        self._config = self._load()
 
-    return merge_with_defaults(user_config)
+    def _load(self) -> dict:
+        if self.user_config_path.exists():
+            try:
+                with open(self.user_config_path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                pass
 
+        return self._load_default()
 
-def save_config(config: dict):
-    CONFIG_PATH.parent.mkdir(exist_ok=True)
-    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-        json.dump(config, f, indent=2, ensure_ascii=False)
+    def _load_default(self) -> dict:
+        with open(self.default_config_path, "r", encoding="utf-8") as f:
+            return json.load(f)
 
+    def save(self):
+        with open(self.user_config_path, "w", encoding="utf-8") as f:
+            json.dump(self._config, f, indent=2, ensure_ascii=False)
 
-def reset_to_defaults():
-    save_config(DEFAULT_CONFIG)
+    def reset_to_default(self):
+        self._config = self._load_default()
+        self.save()
 
+    def get(self, *keys, default=None):
+        data = self._config
+        for key in keys:
+            if not isinstance(data, dict) or key not in data:
+                return default
+            data = data[key]
+        return data
 
-def merge_with_defaults(user_config: dict) -> dict:
-    result = copy.deepcopy(DEFAULT_CONFIG)
-
-    def recursive_update(dst, src):
-        for key, value in src.items():
-            if isinstance(value, dict) and key in dst:
-                recursive_update(dst[key], value)
-            else:
-                dst[key] = value
-
-    recursive_update(result, user_config)
-    return result
+    def set(self, value, *keys):
+        data = self._config
+        for key in keys[:-1]:
+            data = data.setdefault(key, {})
+        data[keys[-1]] = value
+        self.save()
