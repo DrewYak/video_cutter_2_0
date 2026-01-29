@@ -1,0 +1,27 @@
+{
+  "audio": {
+    "chunk_duration_ms": 50,
+    "silence_threshold_db": -40,
+    "min_silence_duration_ms": 1000
+  },
+  "video": {
+    "webcam_area": {
+      "x": 1720,
+      "y": 840,
+      "width": 200,
+      "height": 240
+    },
+    "analysis": {
+      "pixel_diff_threshold": 15,
+      "activity_window_frames": 100,
+      "activity_threshold": 0.0048,
+      "min_inactive_duration_ms": 2000,
+      "analysis_scale": 0.5
+    }
+  },
+  "cutting": {
+    "buffer_ms": 550,
+    "crf": 27,
+    "preset": "superfast"
+  }
+}
