@@ -8,6 +8,11 @@ class Worker(QObject):
     audio_progress_changed = Signal(int)
     video_progress_changed = Signal(int)
     cut_progress_changed = Signal(int)
+
+    # НОВЫЙ сигнал:
+    # file_path, intervals_count, total_silence_ms
+    file_silence_summary = Signal(str, int, int)
+
     finished = Signal()
 
     def __init__(self, files: list[str], config: dict):
@@ -17,7 +22,6 @@ class Worker(QObject):
 
     def run(self):
         total = len(self.files)
-
         audio_cfg = self.config["audio"]
 
         for index, file_path in enumerate(self.files, start=1):
@@ -34,11 +38,23 @@ class Worker(QObject):
                 progress_callback=self.audio_progress_changed.emit,
             )
 
-            print(
-                f"[AUDIO] Найдено интервалов тишины: {len(intervals)}"
+            total_silence_ms = sum(
+                end - start for start, end in intervals
             )
 
-            # пока видео и нарезка — заглушки
+            print(
+                f"[AUDIO] Интервалов тишины: {len(intervals)}, "
+                f"суммарно: {total_silence_ms / 1000:.1f} сек"
+            )
+
+            # эмитим сводку
+            self.file_silence_summary.emit(
+                file_path,
+                len(intervals),
+                total_silence_ms
+            )
+
+            # пока заглушки
             self.video_progress_changed.emit(100)
             self.cut_progress_changed.emit(100)
 

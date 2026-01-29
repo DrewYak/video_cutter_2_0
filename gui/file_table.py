@@ -24,7 +24,7 @@ class FileTable(QTableWidget):
         self.setSelectionMode(QTableWidget.SingleSelection)
         self.setEditTriggers(QTableWidget.NoEditTriggers)
 
-    # ---------- API, которое ожидает MainWindow ----------
+    # ---------- API ----------
 
     def add_files(self, file_paths: list[str]):
         for path in file_paths:
@@ -38,7 +38,23 @@ class FileTable(QTableWidget):
                 files.append(item.data(Qt.UserRole))
         return files
 
-    # ---------- Внутренняя логика ----------
+    def update_cut_time(self, file_path: str, total_silence_ms: int):
+        """Обновляет колонку 'Вырезано' для файла"""
+        for row in range(self.rowCount()):
+            item = self.item(row, self.COLUMN_NAME)
+            if item and item.data(Qt.UserRole) == file_path:
+                seconds = total_silence_ms // 1000
+                minutes = seconds // 60
+                seconds = seconds % 60
+                text = f"{minutes:02d}:{seconds:02d}"
+                self.setItem(
+                    row,
+                    self.COLUMN_CUT_TIME,
+                    QTableWidgetItem(text)
+                )
+                break
+
+    # ---------- internals ----------
 
     def add_file(self, file_path: str):
         row = self.rowCount()
@@ -55,11 +71,6 @@ class FileTable(QTableWidget):
         self.setItem(row, self.COLUMN_NAME, name_item)
         self.setItem(row, self.COLUMN_STATUS, QTableWidgetItem("Ожидание"))
         self.setItem(row, self.COLUMN_CUT_TIME, QTableWidgetItem("—"))
-
-    def remove_selected(self):
-        row = self.currentRow()
-        if row >= 0:
-            self.removeRow(row)
 
     def set_show_full_path(self, show: bool):
         self._show_full_paths = show
