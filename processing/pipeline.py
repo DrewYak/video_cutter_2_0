@@ -4,13 +4,7 @@ from media_io.audio_reader import load_audio
 from media_io.video_reader import open_video
 
 from analysis.audio_analysis import find_silence_intervals
-from analysis.video_analysis import (
-    mask_webcam,
-    preprocess_frame,
-    frame_change_metric,
-    SlidingActivityWindow,
-    VisualInactivityDetector
-)
+from analysis.video_analysis import analyze_video_inactivity
 
 from processing.intervals import intersect_intervals
 from processing.cutter import (
@@ -19,19 +13,12 @@ from processing.cutter import (
     cut_video_with_reencoding
 )
 
-import json
-import time
 
-
-def run_pipeline(input_video: str, output_video: str):
+def run_pipeline(input_video: str, output_video: str, config: dict):
     """
     Основной сценарий обработки видео.
-    Единственный источник истины для пайплайна.
+    Не содержит логики загрузки конфигурации.
     """
-
-    # ---------- CONFIG ----------
-    with open("config/config.json", "r", encoding="utf-8") as f:
-        config = json.load(f)
 
     # ---------- AUDIO ANALYSIS ----------
     audio_cfg = config["audio"]
@@ -56,65 +43,17 @@ def run_pipeline(input_video: str, output_video: str):
 
     # ---------- VIDEO ANALYSIS ----------
     video_cfg = config["video"]
-    analysis_cfg = video_cfg["analysis"]
 
     cap, fps, frame_count = open_video(input_video)
 
-    activity_window = SlidingActivityWindow(
-        window_size=analysis_cfg["activity_window_frames"]
+    visual_inactive_intervals = analyze_video_inactivity(
+        cap=cap,
+        fps=fps,
+        frame_count=frame_count,
+        video_config=video_cfg
     )
-
-    detector = VisualInactivityDetector(
-        activity_threshold=analysis_cfg["activity_threshold"],
-        min_inactive_duration_ms=analysis_cfg["min_inactive_duration_ms"]
-    )
-
-    prev_processed = None
-    frame_index = 0
-
-    last_progress_time = time.time()
-    start_time = last_progress_time
-
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        frame = mask_webcam(frame, video_cfg["webcam_area"])
-
-        processed = preprocess_frame(
-            frame,
-            scale=analysis_cfg["analysis_scale"]
-        )
-
-        if prev_processed is not None:
-            change = frame_change_metric(
-                prev_processed,
-                processed,
-                pixel_diff_threshold=analysis_cfg["pixel_diff_threshold"]
-            )
-
-            activity_score = activity_window.update(change)
-
-            time_ms = int(frame_index / fps * 1000)
-            detector.update(time_ms, activity_score)
-
-        prev_processed = processed
-        frame_index += 1
-
-        now = time.time()
-        if now - last_progress_time >= 5:
-            percent = frame_index / frame_count * 100
-            elapsed = int(now - start_time)
-            print(f"Видео-анализ: {percent:.1f}% | {elapsed} сек")
-            last_progress_time = now
 
     cap.release()
-
-    last_time_ms = int(frame_index / fps * 1000)
-    detector.finalize(last_time_ms)
-
-    visual_inactive_intervals = detector.intervals
 
     # ---------- MERGE INTERVALS ----------
     passive_intervals = intersect_intervals(
