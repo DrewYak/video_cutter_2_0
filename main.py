@@ -15,7 +15,7 @@ def load_config(path: str) -> dict:
 
 def main():
     input_video = "07.03.mkv"
-    output_video = "07.03_output_cut_crf20_veryfast.mp4"
+    output_video = "07.03_output_cut_crf20_veryfast_2.mp4"
 
     config = load_config("config/config.json")
 

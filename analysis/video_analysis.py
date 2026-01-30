@@ -4,6 +4,8 @@ import cv2
 import numpy as np
 import time
 
+from media_io.video_reader import open_video
+
 
 def mask_webcam(frame, webcam_area):
     x = webcam_area["x"]
@@ -77,13 +79,15 @@ class VisualInactivityDetector:
                 )
 
 
-def analyze_video_inactivity(cap, fps, frame_count, video_config):
+def analyze_video_inactivity(video_path: str, video_config: dict):
     """
-    Полный анализ видео на визуальную неактивность.
-    Возвращает список интервалов (start_ms, end_ms).
+    Полный автономный анализ видео на визуальную неактивность.
+    Чёрный ящик: video_path -> интервалы.
     """
 
     analysis_cfg = video_config["analysis"]
+
+    cap, fps, frame_count = open_video(video_path)
 
     activity_window = SlidingActivityWindow(
         window_size=analysis_cfg["activity_window_frames"]
@@ -133,6 +137,8 @@ def analyze_video_inactivity(cap, fps, frame_count, video_config):
             elapsed = int(now - start_time)
             print(f"Видео-анализ: {percent:.1f}% | {elapsed} сек")
             last_progress_time = now
+
+    cap.release()
 
     last_time_ms = int(frame_index / fps * 1000)
     detector.finalize(last_time_ms)

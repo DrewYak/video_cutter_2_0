@@ -1,7 +1,6 @@
 # processing/pipeline.py
 
 from media_io.audio_reader import load_audio
-from media_io.video_reader import open_video
 
 from analysis.audio_analysis import find_silence_intervals
 from analysis.video_analysis import analyze_video_inactivity
@@ -17,7 +16,7 @@ from processing.cutter import (
 def run_pipeline(input_video: str, output_video: str, config: dict):
     """
     Основной сценарий обработки видео.
-    Не содержит логики загрузки конфигурации.
+    Оркестратор, не знает деталей реализации.
     """
 
     # ---------- AUDIO ANALYSIS ----------
@@ -44,16 +43,10 @@ def run_pipeline(input_video: str, output_video: str, config: dict):
     # ---------- VIDEO ANALYSIS ----------
     video_cfg = config["video"]
 
-    cap, fps, frame_count = open_video(input_video)
-
     visual_inactive_intervals = analyze_video_inactivity(
-        cap=cap,
-        fps=fps,
-        frame_count=frame_count,
+        video_path=input_video,
         video_config=video_cfg
     )
-
-    cap.release()
 
     # ---------- MERGE INTERVALS ----------
     passive_intervals = intersect_intervals(
