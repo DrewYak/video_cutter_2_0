@@ -21,7 +21,7 @@
   },
   "cutting": {
     "buffer_ms": 550,
-    "crf": 27,
-    "preset": "superfast"
+    "crf": 20,
+    "preset": "veryslow"
   }
 }
